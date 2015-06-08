@@ -1,7 +1,6 @@
 # Package modified tum_ardrone
 
-Based on tum-vision/tum_ardrone/tree/hydro-devel
-
+Based on https://github.com/tum-vision/tum_ardrone/tree/hydro-devel
 
 ## Licence
 
