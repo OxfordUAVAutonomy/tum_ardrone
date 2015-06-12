@@ -1,0 +1,9 @@
+takeoff
+
+goto 0 0 1 0
+goto 1 0 1 0
+goto 1 1 1 0
+goto 0 1 1 0
+goto 0 0 1 0
+
+land
