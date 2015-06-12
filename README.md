@@ -1,6 +1,6 @@
 # Package modified tum_ardrone
 
-This package is a modified version of the original `tum_ardrone` package from https://github.com/tum-vision/tum_ardrone/tree/hydro-devel. The main difference is that our autopilot is generated from AgentSpeak code. It currently only supports a subset of the original autopilot's commands. the For a [list of the supported commands](#supportedCommands) see below.
+This package is a modified version of the original `tum_ardrone` package from https://github.com/tum-vision/tum_ardrone/tree/hydro-devel. The main difference is that our autopilot is generated from AgentSpeak code. It currently only supports a subset of the original autopilot's commands. For a [list of the supported commands](#supportedCommands) see below.
 More details can be found in [here](http://www.cprover.org/UAVs/TAROS2015/).
 
 ## Installation
