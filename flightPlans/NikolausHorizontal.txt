@@ -1,9 +1,4 @@
-autoInit 500 800
-
-setMaxControl 1
-setInitialReachDist 0.2
-setStayWithinDist 0.5
-setStayTime 3
+takeoff
 
 # rectangle
 goto 0 0 1 0

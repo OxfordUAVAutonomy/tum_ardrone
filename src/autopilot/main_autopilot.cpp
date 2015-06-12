@@ -1,52 +1,113 @@
- /**
- *  This file is part of tum_ardrone.
- *
- *  Copyright 2012 Jakob Engel <jajuengel@gmail.com> (Technical University of Munich)
- *  For more information see <https://vision.in.tum.de/data/software/tum_ardrone>.
- *
- *  tum_ardrone is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  tum_ardrone is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with tum_ardrone.  If not, see <http://www.gnu.org/licenses/>.
- */
- 
- 
- 
- 
-#include "ControlNode.h"
+#include <string>
+#include <sstream>
+
 #include "ros/ros.h"
 #include "ros/package.h"
-#include "boost/thread.hpp"
-#include <signal.h>
+#include "../HelperFunctions.h"
+
+#include "AutopilotNode.h"
+#include "AutopilotStructures.h"
+
+extern "C" {
+  #include "autopilotAI/actions.h"
+  #include "autopilotAI/types.h"
+}
 
 // this global var is used in getMS(ros::Time t) to convert to a consistent integer timestamp used internally pretty much everywhere.
 // kind of an artifact from Windows-Version, where only that was available / used.
 unsigned int ros_header_timestamp_base = 0;
 
-
+// TODO: this is an ugly solution, improve!
+AutopilotNode *node;
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "drone_autopilot");
+  ros::init(argc, argv, "autopilot");
 
-  ROS_INFO("Started TUM ArDrone Autopilot Node.");
+  ROS_INFO("Starting Autopilot Node.");
 
-  ControlNode controlNode;
+  AutopilotNode autopilotNode;
+
+  node = &autopilotNode;
 
   dynamic_reconfigure::Server<tum_ardrone::AutopilotParamsConfig> srv;
   dynamic_reconfigure::Server<tum_ardrone::AutopilotParamsConfig>::CallbackType f;
-  f = boost::bind(&ControlNode::dynConfCb, &controlNode, _1, _2);
+  f = boost::bind(&AutopilotNode::dynConfCb, &autopilotNode, _1, _2);
   srv.setCallback(f);
 
-  controlNode.Loop();
+  // call init() of translated AgentSpeak
+  init();
+
+  autopilotNode.mainLoop();
 
   return 0;
 }
+
+void sendGoto(control_commandt cmd)
+{
+  node->sendGoto(cmd);
+}
+
+void sendHover()
+{
+  node->sendHover();
+}
+
+void sendLand()
+{
+  node->sendLand();
+}
+
+void sendTakeOff()
+{
+  node->sendTakeoff();
+}
+
+control_commandt calculateMovement(positiont position, positiont target)
+{
+  ControlCommand command = node->calculateMovement(position, target);
+  control_commandt cmd;
+  cmd.roll = command.roll;
+  cmd.pitch = command.pitch;
+  cmd.yaw = command.yaw; 
+  cmd.gaz = command.gaz;
+  return cmd;
+}
+
+bool closeEnough(positiont position, positiont target, double xyzDist, double yawDist)
+{
+  positiont diff = getDifference(position, target);
+  return ((getNormSquared(diff) < xyzDist * xyzDist) && (diff.yaw * diff.yaw < yawDist * yawDist));
+}
+
+int getCurrentTimeMS()
+{
+  return getMS();
+}
+
+bool longEnough(int startTime, int waitTime)
+{
+  int time_diff = getMS() - startTime;
+  return (time_diff >= waitTime);
+}
+
+void notifyUser(messaget msg)
+{
+  // log messages are displayed by the UI node
+  std::stringstream message;
+  message << "u l notification: " << msg;
+  node->publishCommand(message.str());
+  // alternatively, you can use
+  //ROS_INFO("notification: %s", msg);
+}
+
+void updateBeliefs(void) {
+  DronePosition position = node->getPosition();
+  positiont pos;
+  pos.x = position.x;
+  pos.y = position.y;
+  pos.z = position.z;
+  pos.yaw = position.yaw;
+  set_myPosition(pos);
+}
+

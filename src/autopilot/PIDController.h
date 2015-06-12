@@ -18,121 +18,77 @@
  *  You should have received a copy of the GNU General Public License
  *  along with tum_ardrone.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef __DRONECONTROLLER_H
-#define __DRONECONTROLLER_H
- 
- 
- 
+#ifndef __PID_CONTROLLER_H
+#define __PID_CONTROLLER_H
+
 
 #include "TooN/se3.h"
 #include <queue>
 #include "geometry_msgs/Twist.h"
 #include "tum_ardrone/filter_state.h"
 
-class ControlNode;
+#include "AutopilotStructures.h"
 
-struct ControlCommand
-{
-	inline ControlCommand() {roll = pitch = yaw = gaz = 0;}
-	inline ControlCommand(double roll, double pitch, double yaw, double gaz)
-	{
-		this->roll = roll;
-		this->pitch = pitch;
-		this->yaw = yaw;
-		this->gaz = gaz;
-	}
-	double yaw, roll, pitch, gaz;
-};
-
-
-struct DronePosition
-{
-public:
-	double yaw;
-	TooN::Vector<3> pos;
-	inline DronePosition(TooN::Vector<3> pos, double yaw)
-		: yaw(yaw), pos(pos) {}
-	inline DronePosition(){ yaw=0; pos=TooN::makeVector(0,0,0);}
-};
-
-class DroneController
+class PIDController
 {
 private:
-	ControlCommand lastSentControl;
+  DronePosition lastTarget;
+  ControlCommand lastSentControl;
 	
-	// currentTarget.
-	DronePosition target;
-	bool targetValid;
+  // used for integral term
+  TooN::Vector<4> targetNew;  // 0=target has been reached before
+                              // 1=target is new
 
-	// used for integral term
-	TooN::Vector<4> targetNew;	// 0=target has been reached before
-								// 1=target is new
+  // need to keep track of integral terms
+  TooN::Vector<4> i_term;
+  TooN::Vector<4> last_error;
 
-	// need to keep track of integral terms
-	TooN::Vector<4> i_term;
-	TooN::Vector<4> last_err;
-	TooN::Vector<4> speedAverages;
+  double targetSetAtClock;
+  double lastTimeStamp;
 
-	double lastTimeStamp;
-	double targetSetAtClock;
-	ControlCommand hoverCommand;
+  void calcControl(
+    TooN::Vector<4> new_err, 
+    TooN::Vector<4> d_error, 
+    double yaw);/*, 
+    double scaleAccuracy);*/
 
-
-
-	// filled with info (on update)
-	bool  ptamIsGood;
-	double scaleAccuracy;
-	void calcControl(TooN::Vector<4> new_err, TooN::Vector<4> d_error, double yaw);
+  void setNewTarget(DronePosition newTarget);
 
 public:
+  PIDController(void);
+  ~PIDController(void);
 
-	// generates and sends a new control command to the drone, based on the currently active command ant the drone's position.
-	ControlCommand update(tum_ardrone::filter_stateConstPtr);
+  // generates and sends a new control command to the drone, based on the currently active command ant the drone's position.
+  ControlCommand getControlCommand(
+    DronePosition position, 
+    DroneSpeed speed, 
+    DronePosition target);/*,
+    double scaleAccuracy);*/
 
-	ControlNode* node;
+  DronePosition getLastTarget(void);
+  TooN::Vector<4> getLastError(void);
+  ControlCommand getLastSentControl(void);
 
-	// for logging, gets filled with recent infos on control.
-	TooN::Vector<28> logInfo;
+  // PID control parameters. settable via dynamic_reconfigure
+  double max_yaw;
+  double max_rp;
+  double max_gaz_rise;
+  double max_gaz_drop;
 
-	// adds a waypoint
-	void setTarget(DronePosition newTarget);
-	void clearTarget();
-	DronePosition getCurrentTarget();
-	ControlCommand getLastControl();
+  double rise_fac;
+  double aggressiveness;
 
-	// gets last error
-	TooN::Vector<4> getLastErr();
+  double Ki_yaw;
+  double Kd_yaw;
+  double Kp_yaw;
 
-	DroneController(void);
-	~DroneController(void);
+  double Ki_gaz;
+  double Kd_gaz;
+  double Kp_gaz;
 
-
-
-
-
-	// PID control parameters. settable via dynamic_reconfigure
-	// target is where i want to get to.
-	// pose and yaw are where i am.
-	double max_yaw;
-	double max_rp;
-	double max_gaz_rise;
-	double max_gaz_drop;
-
-	double rise_fac;
-	double agressiveness;
-
-	double Ki_yaw;
-	double Kd_yaw;
-	double Kp_yaw;
-
-	double Ki_gaz;
-	double Kd_gaz;
-	double Kp_gaz;
-
-	double Ki_rp;
-	double Kd_rp;
-	double Kp_rp;
-
+  double Ki_rp;
+  double Kd_rp;
+  double Kp_rp;
 };
-#endif /* __DRONECONTROLLER_H */
+#endif /* __PIDCONTROLLER_H */
 

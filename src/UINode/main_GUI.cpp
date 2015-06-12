@@ -32,37 +32,37 @@ unsigned int ros_header_timestamp_base = 0;
 
 int main(int argc, char *argv[])
 {
-	std::cout << "Starting drone_gui Node" << std::endl;
+  std::cout << "Starting drone_gui Node" << std::endl;
 
-	// ROS
-	ros::init(argc, argv, "drone_gui");
-    RosThread t;
-    PingThread p;
+  // ROS
+  ros::init(argc, argv, "drone_gui");
+  RosThread t;
+  PingThread p;
 
-    // UI
-    QApplication a(argc, argv);
-    tum_ardrone_gui w;
+  // UI
+  QApplication a(argc, argv);
+  tum_ardrone_gui w;
 
-    // make them communicate with each other
-    t.gui = &w;
-    w.rosThread = &t;
-    p.gui = &w;
-    p.rosThread = &t;
-    w.pingThread = &p;
+  // make them communicate with each other
+  t.gui = &w;
+  w.rosThread = &t;
+  p.gui = &w;
+  p.rosThread = &t;
+  w.pingThread = &p;
 
-    // start them.
-    t.startSystem();
-    p.startSystem();
-    w.show();
+  // start them.
+  t.startSystem();
+  p.startSystem();
+  w.show();
 
-    // wait until windows closed....
-    int ec = a.exec();
+  // wait until windows closed....
+  int ec = a.exec();
 
-     // stop ROS again....
-    t.stopSystem();
-    p.stopSystem();
+  // stop ROS again....
+  t.stopSystem();
+  p.stopSystem();
 
-	std::cout << "Exiting drone_gui Node" << std::endl;
+  std::cout << "Exiting drone_gui Node" << std::endl;
 
-    return ec;
+  return ec;
 }

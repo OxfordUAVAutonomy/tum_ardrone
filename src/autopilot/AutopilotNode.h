@@ -1,155 +1,91 @@
 #pragma once
- /**
- *  This file is part of tum_ardrone.
- *
- *  Copyright 2012 Jakob Engel <jajuengel@gmail.com> (Technical University of Munich)
- *  For more information see <https://vision.in.tum.de/data/software/tum_ardrone>.
- *
- *  tum_ardrone is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  tum_ardrone is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with tum_ardrone.  If not, see <http://www.gnu.org/licenses/>.
- */
-#ifndef __CONTROLNODE_H
-#define __CONTROLNODE_H
 
+#ifndef __AUTOPILOT_NODE_H
+#define __AUTOPILOT_NODE_H
+
+// TODO: check these dependencies / includes
 #include "ros/ros.h"
 #include "geometry_msgs/Twist.h"
 #include "tum_ardrone/filter_state.h"
 #include "std_msgs/String.h"
 #include <dynamic_reconfigure/server.h>
 #include "tum_ardrone/AutopilotParamsConfig.h"
-#include "DroneController.h"
 #include "std_msgs/Empty.h"
 #include "std_srvs/Empty.h"
 
-#include "tum_ardrone/SetReference.h"
-#include "tum_ardrone/SetMaxControl.h"
-#include "tum_ardrone/SetInitialReachDistance.h"
-#include "tum_ardrone/SetStayWithinDistance.h"
-#include "tum_ardrone/SetStayTime.h"
-#include "std_srvs/Empty.h"
+#include "AutopilotStructures.h"
+#include "PIDController.h"
 
-class DroneKalmanFilter;
-class MapView;
-class PTAMWrapper;
-class KIProcedure;
+extern "C" {
+  #include "autopilotAI/autopilot.h"
+}
 
-
-struct ControlNode
+class AutopilotNode
 {
 private:
-	ros::Subscriber dronepose_sub;
-	ros::Publisher vel_pub;
-	ros::Subscriber tum_ardrone_sub;
-	ros::Publisher tum_ardrone_pub;
-	ros::Publisher takeoff_pub;
-	ros::Publisher land_pub;
-	ros::Publisher toggleState_pub;
+  ros::Subscriber dronepose_sub;
+  ros::Publisher control_pub;
+  ros::Subscriber command_sub;
+  ros::Publisher command_pub;
+  ros::Publisher takeoff_pub;
+  ros::Publisher land_pub;
+  ros::Publisher toggleState_pub;
 
-	ros::NodeHandle nh_;
-	static pthread_mutex_t tum_ardrone_CS;
+  ros::NodeHandle nh_;
+  static pthread_mutex_t tum_ardrone_CS;
 
-	// parameters
-	int minPublishFreq;
-	std::string control_channel;
-	std::string dronepose_channel;
-	std::string command_channel;
-	std::string packagePath;
-	std::string land_channel;
-	std::string takeoff_channel;
-	std::string toggleState_channel;
+  DronePosition position;
+  DroneSpeed speed;
+  //double scaleAccuracy;
 
-	// services
-	ros::ServiceServer setReference_;
-	ros::ServiceServer setMaxControl_;
-	ros::ServiceServer setInitialReachDistance_;
-	ros::ServiceServer setStayWithinDistance_;
-	ros::ServiceServer setStayTime_;
-	ros::ServiceServer startControl_;
-	ros::ServiceServer stopControl_;
-	ros::ServiceServer clearCommands_;
-	ros::ServiceServer hover_;
-	ros::ServiceServer lockScaleFP_;
+  // parameters
+  bool isControlling;
+  int minPublishFreq;
+  std::string packagePath;
 
-	bool setReference(tum_ardrone::SetReference::Request&, tum_ardrone::SetReference::Response&);
-	bool setMaxControl(tum_ardrone::SetMaxControl::Request&, tum_ardrone::SetMaxControl::Response&);
-	bool setInitialReachDistance(tum_ardrone::SetInitialReachDistance::Request&, tum_ardrone::SetInitialReachDistance::Response&);
-	bool setStayWithinDistance(tum_ardrone::SetStayWithinDistance::Request&, tum_ardrone::SetStayWithinDistance::Response&);
-	bool setStayTime(tum_ardrone::SetStayTime::Request&, tum_ardrone::SetStayTime::Response&);
-	bool start(std_srvs::Empty::Request&, std_srvs::Empty::Response&);
-	bool stop(std_srvs::Empty::Request&, std_srvs::Empty::Response&);
-	bool clear(std_srvs::Empty::Request&, std_srvs::Empty::Response&);
-	bool hover(std_srvs::Empty::Request&, std_srvs::Empty::Response&);
-	bool lockScaleFP(std_srvs::Empty::Request&, std_srvs::Empty::Response&);
+  std::string dronepose_channel;
+  std::string command_channel;
 
-	// command queue & KI stuff
-	std::deque<std::string> commandQueue;
-	static pthread_mutex_t commandQueue_CS;
-	// this KI is currently responsible for setting the target etc.
-	// if it is "Done", it is set to NULL,
-	// if it is NULL, the next command will be popped and parsed from commandQueueu.
-	KIProcedure* currentKI;
+  std::string land_channel;
+  std::string control_channel;
+  std::string takeoff_channel;
 
-	// command parameters
-	DronePosition parameter_referenceZero;
-	double parameter_StayTime;
-	double parameter_MaxControl;
-	double parameter_InitialReachDist;
-	double parameter_StayWithinDist;
+  PIDController controller;
 
-	// functions
-	void startControl();
-	void stopControl();
-	void clearCommands();
-	void updateControl(const tum_ardrone::filter_stateConstPtr statePtr);
+  std::deque<std::string> commandQueue;
+  std::string lastCommand;
 
-	void popNextCommand(const tum_ardrone::filter_stateConstPtr statePtr);
-	void reSendInfo();
-	char buf[500];
-	ControlCommand lastSentControl;
+  void parseFlightCommand(std::string command);
+
 public:
-	ControlNode();
-	~ControlNode();
+  AutopilotNode();
+  ~AutopilotNode();
 
+  static const ControlCommand hoverCommand;
 
-	// ROS message callbacks
-	void droneposeCb(const tum_ardrone::filter_stateConstPtr statePtr);
-	void comCb(const std_msgs::StringConstPtr str);
-	void dynConfCb(tum_ardrone::AutopilotParamsConfig &config, uint32_t level);
+  // ROS message callbacks
+  void commandCb(const std_msgs::StringConstPtr str);
+  void dynConfCb(tum_ardrone::AutopilotParamsConfig &config, uint32_t level);
+  void droneposeCb(const tum_ardrone::filter_stateConstPtr statePtr);
+  
+  // main pose-estimation loop
+  void mainLoop();
 
-	// main pose-estimation loop
-	void Loop();
+  // writes a string message to "/tum_ardrone/com".
+  // is thread-safe (can be called by any thread, but may block till other calling thread finishes)
+  void publishCommand(std::string c);
+  // publish info about autopilot state (displayed by GUI)
+  void reSendInfo();
 
-	// writes a string message to "/tum_ardrone/com".
-	// is thread-safe (can be called by any thread, but may block till other calling thread finishes)
-	void publishCommand(std::string c);
+  DronePosition getPosition();
+  DroneSpeed getSpeed();
 
-	// control drone functions
-	void sendControlToDrone(ControlCommand cmd);
-	void sendLand();
-	void sendTakeoff();
-	void sendToggleState();
+  ControlCommand calculateMovement(DronePosition position, DronePosition target);
 
-	// controller
-	DroneController controller;
-	ControlCommand hoverCommand;
-
-	// logging stuff
-	std::ofstream* logfileControl;
-	static pthread_mutex_t logControl_CS;
-	void toogleLogging();	// switches logging on or off.
-
-	// other internals
-	long lastControlSentMS;
-	bool isControlling;
+  // control drone functions
+  void sendGoto(ControlCommand cmd);
+  void sendHover();
+  void sendLand();
+  void sendTakeoff();
 };
-#endif /* __CONTROLNODE_H */
+#endif /* __AUTOPILOT_NODE_H */

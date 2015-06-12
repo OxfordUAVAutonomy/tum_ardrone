@@ -4,6 +4,8 @@
 #
 cmake_minimum_required(VERSION 2.8.3)
 project(tum_ardrone)
+# TODO: can we enable C++11?
+#set(CMAKE_CXX_FLAGS "-std=c++11")
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
@@ -150,19 +152,18 @@ add_dependencies(drone_stateestimation thirdparty ${PROJECT_NAME}_gencpp ${PROJE
 # set header ans source files
 set(AUTOPILOT_SOURCE_FILES         
 	src/autopilot/main_autopilot.cpp  
-	src/autopilot/ControlNode.cpp
-	src/autopilot/DroneController.cpp
-	src/autopilot/KI/KILand.cpp
-	src/autopilot/KI/KIAutoInit.cpp
-	src/autopilot/KI/KIFlyTo.cpp
+	src/autopilot/AutopilotNode.cpp
+        src/autopilot/AutopilotStructures.cpp
+        src/autopilot/PIDController.cpp
+        src/autopilot/autopilotAI/autopilot.c
 )
 set(AUTOPILOT_HEADER_FILES        
-	src/autopilot/ControlNode.h
-	src/autopilot/DroneController.h
-	src/autopilot/KI/KILand.h
-	src/autopilot/KI/KIAutoInit.h
-	src/autopilot/KI/KIFlyTo.h
-	src/autopilot/KI/KIProcedure.h
+	src/autopilot/AutopilotNode.h
+        src/autopilot/AutopilotStructures.h
+        src/autopilot/PIDController.h
+        src/autopilot/autopilotAI/actions.h
+        src/autopilot/autopilotAI/autopilot.h
+        src/autopilot/autopilotAI/types.h
 )
 
 # build!
