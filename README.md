@@ -1,6 +1,7 @@
 # Package modified tum_ardrone
 
-This package is a modified version of the original `tum_ardrone` package from https://github.com/tum-vision/tum_ardrone/tree/hydro-devel
+This package is a modified version of the original `tum_ardrone` package from https://github.com/tum-vision/tum_ardrone/tree/hydro-devel. The main difference is that our autopilot is generated from AgentSpeak code. It currently only supports a subset of the original autopilot's commands. the For a [list of the supported commands](#supportedCommands) see below.
+More details can be found in [here](http://www.cprover.org/UAVs/TAROS2015/).
 
 ## Installation
 
@@ -32,7 +33,6 @@ mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws/src
 catkin_init_workspace
 ```
-          
 
 4. Install ardrone_autonomy (see https://github.com/AutonomyLab/ardrone_autonomy/tree/hydro-devel#compile-and-install-from-source):
 ```
@@ -90,6 +90,26 @@ roslaunch tum_ardrone ardrone_driver.launch
 roslaunch tum_ardrone tum_ardrone.launch 
 ```
 
+## <a name="supportedCommands"></a>Supported commands
+
+* `takeoff`
+  - takes control, starts drone.
+  - does not reset map or initialize PTAM.
+* `goto [doube x] [double y] [double z] [double yaw]`
+  - flies to position (x,y,z yaw), relative to current reference point.
+  - blocks until target is reached according to set parameters.
+* `moveByRel [doube x] [double y] [double z] [double yaw]`
+  - moves by (x,y,z,yaw), relative to the current estimated position of the drone.
+  - blocks until target is reached according to set parameters.
+* `land`
+  - initializes landing (use auto-land of drone)
+* `setInitialReachDist [double dist = 0.2]`
+  - drone has to come this close to a way point initially.
+* `setStayWithinDist [double dist = 0.5]`
+  - drone has to stay this close to a way point for a certain amount of time.
+* `setStayTime [double seconds = 2.0]`
+  - time the drone has to stay within target.
+        
 ## Troubleshooting
 
 * tum_simulator does seem to have issues on 64-bit systems, that's why we recommend the i386 Ubuntu image
