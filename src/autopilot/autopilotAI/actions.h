@@ -1,3 +1,5 @@
+/* File actions.h generated from autopilot.asl using AgentSpeakTranslator */
+
 #ifndef __ACTIONS_H
 #define __ACTIONS_H
 #include <stdbool.h>
