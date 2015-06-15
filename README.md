@@ -107,7 +107,11 @@ In order to launch the simulator and the autopilot, please use the following com
 
 * tum_simulator does seem to have issues on 64-bit systems, that's why we recommend the i386 Ubuntu image
 * if catkin_make build fails, check the permissions of the *.cfg files, they should be executable
-* if you used the original tum_ardrone and catkin_make build fails, delete ~/catkin_ws/devel/include/tum_ardrone (a parameter in AutopilotParams.cfg was renamed and it seems that catkin does not regenerate AutopilotParamsConfig.h for some reason)
+* if you used the original tum_ardrone and catkin_make build fails, delete ~/catkin_ws/devel/include/tum_ardrone (a parameter in AutopilotParams.cfg was renamed and it seems that catkin does not regenerate AutopilotParamsConfig.h for some reason) or try
+
+        catkin_make clean
+
+* `roslaunch cvg_sim_gazebo ardrone_testworld.launch` seems to fail occassionally. In this case, just trying it again usually helps.
 
 
 ## Licence
